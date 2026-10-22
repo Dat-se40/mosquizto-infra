@@ -1,0 +1,24 @@
+# Chặn thư mục cài đặt plugin của Terraform
+**/.terraform/*
+.terraform.lock.hcl
+
+# Chặn tuyệt đối file trạng thái (chứa thông tin nhạy cảm của hạ tầng)
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan
+tfplan
+
+# Chặn file biến thực tế, chỉ cho phép commit file .example
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+
+# Chặn toàn bộ SSH Private Key, chứng chỉ và Kubeconfig/Token
+*.pem
+*.ppk
+*.key
+*kubeconfig*
+*token*
+*.credentials
+inventory.ini

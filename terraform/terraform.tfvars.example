@@ -1,0 +1,35 @@
+AWS-REGION   = "us-east-1"
+USE-LAB-ROLE = true
+
+# VPC (2 Public Subnets trên 2 AZ cho EKS & EC2)
+VPC-NAME        = "Two-Tier-VPC"
+VPC-CIDR        = "10.0.0.0/16"
+IGW-NAME        = "Two-Tier-Internet-Gateway"
+PUBLIC-CIDR1    = "10.0.1.0/24"
+PUBLIC-SUBNET1  = "Two-Tier-Public-Subnet1"
+PUBLIC-CIDR2    = "10.0.2.0/24"
+PUBLIC-SUBNET2  = "Two-Tier-Public-Subnet2"
+PUBLIC-RT-NAME1 = "Two-Tier-Public-Route-table1"
+
+# SECURITY GROUP (Thay bằng IP thật của Tuấn và Phong kèm /32)
+WEB-SG-NAME = "Jenkins-EC2-sg"
+ALLOWED-SSH-CIDRS = [
+  "0.0.0.0/0" # Khi làm thực tế hãy thay bằng "<IP-CUA-TUAN>/32", "<IP-CUA-PHONG>/32"
+]
+ALLOWED-JENKINS-CIDRS = [
+  "0.0.0.0/0" # Khi làm thực tế hãy thay bằng "<IP-CUA-TUAN>/32", "<IP-CUA-PHONG>/32"
+]
+
+# IAM
+IAM-ROLE              = "iam-role-for-ec2-SSM"
+IAM-POLICY            = "iam-policy-for-ec2-SSM"
+INSTANCE-PROFILE-NAME = "iam-instance-profile-for-ec2-SSM"
+
+# EC2 JENKINS
+JENKINS-EC2-NAME = "Jenkins-Server-EC2"
+INSTANCE-TYPE    = "t3.medium"
+KEY-NAME         = "vockey" # Tên key mặc định khi bấm Download PEM trên AWS Lab
+
+# EKS
+EKS-CLUSTER-NAME       = "project11-eks-cluster"
+EKS-NODE-INSTANCE-TYPE = "t3.medium"
