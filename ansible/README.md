@@ -135,6 +135,12 @@ helm version
 
 Các lệnh dưới chạy trong thư mục `ansible/`.
 
+Tạo file biến cấu hình
+
+```bash
+cp inventory/hosts.ini.example inventory/hosts.ini
+```
+
 Cấp quyền cho file PEM hiện có, ví dụ:
 
 ```bash
