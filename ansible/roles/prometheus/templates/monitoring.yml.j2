@@ -1,0 +1,32 @@
+grafana:
+  enabled: true
+  adminUser: {{ grafana_admin_user | to_json }}
+  adminPassword: {{ grafana_admin_password | to_json }}
+  service:
+    type: LoadBalancer
+  persistence:
+    enabled: false
+
+prometheus:
+  enabled: true
+  service:
+    type: LoadBalancer
+  prometheusSpec:
+    retention: {{ prometheus_retention | to_json }}
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 2Gi
+
+alertmanager:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true

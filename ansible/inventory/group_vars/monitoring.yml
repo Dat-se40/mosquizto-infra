@@ -1,0 +1,11 @@
+aws_region: ap-southeast-2
+eks_cluster_name: NT548-cluster
+
+monitoring_namespace: monitoring
+helm_release_name: monitoring
+
+prometheus_chart_repository: https://prometheus-community.github.io/helm-charts
+prometheus_chart_name: prometheus-community/kube-prometheus-stack
+
+prometheus_retention: 7d
+grafana_admin_user: admin

@@ -1,0 +1,6 @@
+---
+- name: Ensure Jenkins service is enabled and running
+  ansible.builtin.service:
+    name: "{{ jenkins_service_name }}"
+    state: started
+    enabled: "{{ jenkins_start_on_boot }}"

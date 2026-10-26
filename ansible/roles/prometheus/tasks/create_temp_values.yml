@@ -1,0 +1,7 @@
+﻿---
+- name: Create temporary Helm values file
+  ansible.builtin.tempfile:
+    state: file
+    suffix: "-monitoring-values.yaml"
+  register: monitoring_values_file
+  no_log: true

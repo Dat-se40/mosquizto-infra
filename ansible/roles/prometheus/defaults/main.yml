@@ -1,0 +1,12 @@
+---
+aws_region: us-east-1
+eks_cluster_name: project11-eks-cluster
+
+prometheus_release_name: prometheus
+prometheus_chart_name: prometheus-community/kube-prometheus-stack
+prometheus_chart_repository: https://prometheus-community.github.io/helm-charts
+
+monitoring_namespace: monitoring
+prometheus_retention: 7d
+
+grafana_admin_user: admin

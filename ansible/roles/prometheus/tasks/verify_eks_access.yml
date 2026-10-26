@@ -1,0 +1,8 @@
+﻿---
+- name: Verify access to EKS
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - get
+      - nodes
+  changed_when: false

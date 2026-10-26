@@ -1,0 +1,15 @@
+﻿---
+- name: Display monitoring resources
+  ansible.builtin.command:
+    argv:
+      - kubectl
+      - get
+      - pods,svc
+      - -n
+      - "{{ monitoring_namespace }}"
+  register: monitoring_resources
+  changed_when: false
+
+- name: Show deployment status
+  ansible.builtin.debug:
+    var: monitoring_resources.stdout_lines

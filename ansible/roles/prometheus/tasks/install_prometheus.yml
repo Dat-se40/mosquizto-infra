@@ -1,0 +1,14 @@
+﻿---
+- name: Install or upgrade kube-prometheus-stack
+  kubernetes.core.helm:
+    name: "{{ prometheus_release_name }}"
+    chart_ref: "{{ prometheus_chart_name }}"
+    release_namespace: "{{ monitoring_namespace }}"
+    create_namespace: true
+    values_files:
+      - "{{ monitoring_values_file.path }}"
+    update_repo_cache: true
+    wait: true
+    timeout: 15m
+    state: present
+  no_log: true

@@ -1,0 +1,13 @@
+﻿---
+- name: Verify required tools are installed
+  ansible.builtin.command: "{{ item.command }}"
+  loop:
+    - name: aws
+      command: aws --version
+    - name: kubectl
+      command: kubectl version --client
+    - name: helm
+      command: helm version --short
+  loop_control:
+    label: "{{ item.name }}"
+  changed_when: false

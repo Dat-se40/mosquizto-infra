@@ -1,0 +1,18 @@
+---
+- name: Install Docker
+  ansible.builtin.apt:
+    name: "{{ docker_package }}"
+    state: present
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add Jenkins user to Docker group
+  ansible.builtin.user:
+    name: jenkins
+    groups: docker
+    append: true
+  notify: Restart Jenkins

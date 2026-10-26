@@ -1,0 +1,7 @@
+﻿---
+- name: Render monitoring Helm values
+  ansible.builtin.template:
+    src: monitoring.yml.j2
+    dest: "{{ monitoring_values_file.path }}"
+    mode: "0600"
+  no_log: true

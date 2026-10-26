@@ -1,0 +1,52 @@
+# SSH private keys
+*.pem
+*.key
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+
+# AWS credentials
+.aws/
+credentials
+credentials.csv
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Ansible Vault passwords
+.vault_pass
+.vault_pass.*
+.vault_password
+.vault_password.*
+vault-password*
+vault_password*
+
+# Local secrets — chỉ dùng cho file chưa mã hóa
+secrets.yml
+secrets.yaml
+*.secret.yml
+*.secret.yaml
+
+# Python virtual environments and cache
+venv/
+.venv/
+ansible-venv/
+__pycache__/
+*.py[cod]
+
+# Ansible generated files
+*.retry
+.ansible/
+ansible.log
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

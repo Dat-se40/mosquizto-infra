@@ -1,0 +1,13 @@
+---
+jenkins_http_port: 8080
+jenkins_service_name: jenkins
+
+jenkins_admin_user: admin
+
+java_package: fontconfig
+java_runtime_package: openjdk-21-jre
+
+docker_package: docker.io
+
+jenkins_install_docker: true
+jenkins_start_on_boot: true

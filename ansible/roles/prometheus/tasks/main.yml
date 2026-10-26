@@ -1,0 +1,30 @@
+﻿---
+- name: Verify required tools
+  ansible.builtin.import_tasks: verify_tools.yml
+
+- name: Configure EKS kubeconfig
+  ansible.builtin.import_tasks: configure_kubeconfig.yml
+
+- name: Verify EKS access
+  ansible.builtin.import_tasks: verify_eks_access.yml
+
+- name: Add Prometheus Helm repository
+  ansible.builtin.import_tasks: add_helm_repository.yml
+
+- name: Create monitoring namespace
+  ansible.builtin.import_tasks: create_namespace.yml
+
+- name: Create temporary Helm values file
+  ansible.builtin.import_tasks: create_temp_values.yml
+
+- name: Render Helm values
+  ansible.builtin.import_tasks: render_helm_values.yml
+
+- name: Install Prometheus and Grafana
+  ansible.builtin.import_tasks: install_prometheus.yml
+
+- name: Clean up temporary values file
+  ansible.builtin.import_tasks: cleanup_temp_values.yml
+
+- name: Verify monitoring deployment
+  ansible.builtin.import_tasks: verify_deployment.yml

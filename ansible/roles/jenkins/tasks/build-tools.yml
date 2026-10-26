@@ -1,0 +1,8 @@
+---
+- name: Install Git and Maven
+  ansible.builtin.apt:
+    name:
+      - git
+      - maven
+    state: present
+    update_cache: true

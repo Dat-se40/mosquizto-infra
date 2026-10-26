@@ -1,0 +1,5 @@
+﻿---
+- name: Add Prometheus Community Helm repository
+  kubernetes.core.helm_repository:
+    name: prometheus-community
+    repo_url: "{{ prometheus_chart_repository }}"

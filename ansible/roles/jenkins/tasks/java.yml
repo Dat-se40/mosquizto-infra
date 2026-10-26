@@ -1,0 +1,10 @@
+---
+- name: Install Java runtime
+  ansible.builtin.apt:
+    name: "{{ java_runtime_package }}"
+    state: present
+
+- name: Verify Java installation
+  ansible.builtin.command: java -version
+  register: java_version_result
+  changed_when: false

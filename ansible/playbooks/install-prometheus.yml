@@ -1,0 +1,14 @@
+﻿---
+- name: Deploy Prometheus and Grafana to Amazon EKS
+  hosts: control
+  connection: local
+  gather_facts: false
+
+  vars_prompt:
+    - name: grafana_admin_password
+      prompt: "Enter Grafana admin password"
+      private: true
+      confirm: true
+
+  roles:
+    - prometheus

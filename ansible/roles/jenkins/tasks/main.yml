@@ -1,0 +1,19 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.import_tasks: prerequisites.yml
+
+- name: Install Java runtime
+  ansible.builtin.import_tasks: java.yml
+
+- name: Install Git and Maven
+  ansible.builtin.import_tasks: build-tools.yml
+
+- name: Install Jenkins
+  ansible.builtin.import_tasks: jenkins.yml
+
+- name: Install Docker
+  ansible.builtin.import_tasks: docker.yml
+  when: jenkins_install_docker | bool
+
+- name: Configure Jenkins service
+  ansible.builtin.import_tasks: services.yml

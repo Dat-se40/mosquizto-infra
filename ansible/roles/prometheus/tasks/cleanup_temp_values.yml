@@ -1,0 +1,6 @@
+﻿---
+- name: Remove temporary values file
+  ansible.builtin.file:
+    path: "{{ monitoring_values_file.path }}"
+    state: absent
+  no_log: true

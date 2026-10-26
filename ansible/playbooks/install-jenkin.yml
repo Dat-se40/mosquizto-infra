@@ -1,0 +1,8 @@
+---
+- name: Configure Jenkins EC2
+  hosts: jenkins
+  become: true
+  gather_facts: true
+
+  roles:
+    - jenkins
