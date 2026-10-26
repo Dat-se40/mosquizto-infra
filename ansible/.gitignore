@@ -50,3 +50,5 @@ ansible.log
 *~
 .DS_Store
 Thumbs.db
+
+/inventory/hosts.ini

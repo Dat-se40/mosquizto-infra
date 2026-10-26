@@ -46,36 +46,6 @@ sudo apt install -y curl unzip ca-certificates openssh-client python3 ansible py
 ansible-galaxy collection install -r requirements.yml
 ```
 
-Nội dung `requirements.yml`:
-
-```yaml
----
-collections:
-  - name: ansible.posix
-  - name: kubernetes.core
-```
-
-Trong `inventory/hosts.ini`, thêm:
-
-```ini
-[all:vars]
-ansible_python_interpreter=/usr/bin/python3
-```
-
-Nếu đã khai báo `ansible_python_interpreter` ở host hoặc group khác, sửa về `/usr/bin/python3` hoặc bỏ khai báo đó để tránh ghi đè.
-
-Nếu đang ở trong virtual environment, thoát bằng:
-
-```bash
-deactivate
-```
-
-Bỏ biến interpreter đã export trước đó, nếu có:
-
-```bash
-unset ANSIBLE_PYTHON_INTERPRETER
-```
-
 Kiểm tra:
 
 ```bash
@@ -128,161 +98,79 @@ Credential phải được cấu hình trong **Linux/WSL đang chạy Ansible**.
 
 Nếu máy điều khiển là EC2 đã gắn IAM role có đủ quyền, không cần nhập access key thủ công.
 
-### 2.3. kubectl
+### 2.3. Cài kubectl và kết nối EKS
 
-Chọn region và nhập tên cluster:
+Các lệnh dưới dành cho Linux **x86_64/amd64**, sau khi đã cài AWS CLI và cấu hình credential.
 
-```bash
-export AWS_DEFAULT_REGION=us-east-1
-read -r -p 'Tên EKS cluster: ' EKS_CLUSTER_NAME
-aws eks describe-cluster --region "$AWS_DEFAULT_REGION" --name "$EKS_CLUSTER_NAME" --query 'cluster.version' --output text
-```
-
-Chỉ tiếp tục khi lệnh trên trả về phiên bản EKS thành công.
-
-Cài kubectl cùng minor version với cluster và kiểm tra checksum:
+Cài kubectl theo phiên bản EKS đã khai báo trong `roles/prometheus/defaults/main.yml` (`us-east-1`, `project11-eks-cluster`):
 
 ```bash
-case "$(uname -m)" in x86_64) KUBECTL_ARCH=amd64 ;; aarch64|arm64) KUBECTL_ARCH=arm64 ;; *) echo 'Kiến trúc chưa được hỗ trợ'; return 1 2>/dev/null || exit 1 ;; esac
-EKS_VERSION=$(aws eks describe-cluster --region "$AWS_DEFAULT_REGION" --name "$EKS_CLUSTER_NAME" --query 'cluster.version' --output text)
+EKS_VERSION=$(aws eks describe-cluster --region us-east-1 --name project11-eks-cluster --query 'cluster.version' --output text)
 KUBECTL_VERSION=$(curl -fsSL "https://dl.k8s.io/release/stable-${EKS_VERSION}.txt")
-KUBECTL_INSTALL_DIR=$(mktemp -d)
-curl -fL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl" -o "$KUBECTL_INSTALL_DIR/kubectl"
-curl -fL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl.sha256" -o "$KUBECTL_INSTALL_DIR/kubectl.sha256"
-(cd "$KUBECTL_INSTALL_DIR" && echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check) && sudo install -m 0755 "$KUBECTL_INSTALL_DIR/kubectl" /usr/local/bin/kubectl
+curl -fLO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+sudo install -m 0755 kubectl /usr/local/bin/kubectl
 kubectl version --client
 ```
 
-Checksum phải báo `kubectl: OK`.
-
-Cập nhật kubeconfig và kiểm tra kết nối:
+Kết nối và kiểm tra cluster:
 
 ```bash
-aws eks update-kubeconfig --region "$AWS_DEFAULT_REGION" --name "$EKS_CLUSTER_NAME"
+aws eks update-kubeconfig --region us-east-1 --name project11-eks-cluster
 kubectl get nodes -o wide
 ```
 
-IAM principal đang sử dụng phải được cấp quyền truy cập cluster. Lệnh `update-kubeconfig` không tự cấp quyền.
+Nếu đổi region hoặc tên cluster trong file cấu hình, sửa tương ứng trong các lệnh trên. IAM principal đang dùng phải có quyền truy cập EKS.
 
 ### 2.4. Helm
 
 Cài Helm 3:
 
 ```bash
-HELM_INSTALL_DIR=$(mktemp -d)
-curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o "$HELM_INSTALL_DIR/get-helm-3"
-bash "$HELM_INSTALL_DIR/get-helm-3"
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 -o get-helm-3.sh
+bash get-helm-3.sh
 helm version
 ```
 
-## 3. Cấu hình inventory cho EC2 Jenkins và khóa PEM
+## 3. Cấu hình inventory cho EC2 Jenkins
 
-### 3.1. Vào thư mục Ansible
+Các lệnh dưới chạy trong thư mục `ansible/`.
 
-Nếu đang đứng trong `mosquizto-infra/tf/`:
-
-```bash
-cd ../ansible
-```
-
-Nếu đang dùng WSL theo đường dẫn hiện tại của dự án:
+Cấp quyền cho file PEM hiện có, ví dụ:
 
 ```bash
-cd /mnt/d/UIT/NT548/mosquizto-infra/ansible
+chmod 400 /home/ubuntu/jenkins-key.pem
 ```
 
-`../ansible/inventory/hosts.ini` khi đứng trong `tf/` chính là `inventory/hosts.ini` khi đã đứng trong `ansible/`.
-
-### 3.2. Chép khóa vào filesystem Linux và chmod
-
-Thay đường dẫn nguồn dưới đây bằng vị trí file PEM thực tế của bạn:
-
-```bash
-mkdir -p "$HOME/.ssh"
-chmod 700 "$HOME/.ssh"
-cp /mnt/d/duong-dan/jenkins-key.pem "$HOME/.ssh/jenkins-key.pem"
-chmod 400 "$HOME/.ssh/jenkins-key.pem"
-ls -l "$HOME/.ssh/jenkins-key.pem"
-realpath "$HOME/.ssh/jenkins-key.pem"
-```
-
-Quyền mong đợi là `-r--------`. Trên WSL, dùng bản key trong thư mục Linux `$HOME/.ssh`, tránh lỗi quyền SSH với key đặt trực tiếp dưới `/mnt/d`.
-
-### 3.3. Sửa hosts.ini
-
-Mở file:
-
-```bash
-nano inventory/hosts.ini
-```
-
-Cập nhật block Jenkins, giữ lại các group khác đang có:
+Trong `inventory/hosts.ini`, sửa `ansible_host` thành Public IP của EC2 Jenkins và `ansible_ssh_private_key_file` thành đường dẫn file PEM:
 
 ```ini
 [jenkins]
-jenkins-server ansible_host=PUBLIC_IP_EC2_JENKINS ansible_user=ubuntu ansible_ssh_private_key_file=/DUONG_DAN_TUYET_DOI/.ssh/jenkins-key.pem
-
-[jenkins:vars]
-ansible_python_interpreter=/usr/bin/python3
+jenkins-server ansible_host=PUBLIC_IP_EC2_JENKINS ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/jenkins-key.pem
 ```
 
-Thay `PUBLIC_IP_EC2_JENKINS` bằng Public IPv4 hiện tại của EC2. Thay đường dẫn key bằng kết quả `realpath` ở trên. Ví dụ, nếu chạy bằng root trong WSL thì thường là `/root/.ssh/jenkins-key.pem`; nếu chạy bằng user khác, dùng home của user đó.
+Giữ nguyên các group khác trong inventory.
 
-`ansible_user=ubuntu` áp dụng cho EC2 Ubuntu. Nếu EC2 dùng AMI khác, đặt đúng SSH user của AMI đó.
-
-Monitoring chạy trên máy Linux điều khiển, không SSH vào worker EKS. Nếu playbook dùng group `control`, inventory cần có:
-
-```ini
-[control]
-localhost ansible_connection=local
-```
-
-Nếu playbook dùng group `monitoring` thay vì `control`, giữ đúng tên group đó. Kiểm tra trường `hosts:` trong `playbooks/install-prometheus.yml`; file `inventory/group_vars/monitoring.yml` tự áp dụng cho group `monitoring`, không tự áp dụng cho group `control` nếu không có quan hệ group hoặc nạp vars riêng.
-
-### 3.4. Kiểm tra cấu hình và SSH
-
-Đứng trong `ansible/`, sử dụng cấu hình của dự án và inventory đã sửa:
-
-```bash
-export ANSIBLE_CONFIG="$PWD/ansible.cfg"
-export ANSIBLE_ROLES_PATH="$PWD/roles"
-export ANSIBLE_PYTHON_INTERPRETER="$(command -v python)"
-ansible --version
-ansible-inventory -i inventory/hosts.ini --graph
-```
-
-Các biến export trên chỉ áp dụng trong terminal hiện tại, không chỉnh `.bashrc`. Đặt `ANSIBLE_CONFIG` tường minh cũng tránh việc Ansible bỏ qua tự nạp cấu hình ở thư mục WSL có quyền world-writable.
-
-Kiểm tra SSH bằng đúng IP và key đã cấu hình:
-
-```bash
-ssh -i "$HOME/.ssh/jenkins-key.pem" ubuntu@PUBLIC_IP_EC2_JENKINS
-```
-
-Xác minh host fingerprint khi kết nối lần đầu; sau khi vào được EC2, chạy `exit` để quay về máy điều khiển. Security Group EC2 phải cho phép SSH TCP `22` từ IP public của máy đang chạy Ansible.
+Kiểm tra kết nối:
 
 ```bash
 ansible jenkins -i inventory/hosts.ini -m ping
 ```
 
-Kết quả mong đợi: `jenkins-server | SUCCESS` và `"ping": "pong"`.
+Kết quả mong đợi: `"ping": "pong"`.
 
 ## 4. Chạy playbook cài Jenkins EC2
 
-Tất cả lệnh Ansible sau chạy từ thư mục `ansible/`, trong virtual environment đã kích hoạt:
-
 ```bash
-ansible-playbook -i inventory/hosts.ini playbooks/install-jenkin.yml --syntax-check
 ansible-playbook -i inventory/hosts.ini playbooks/install-jenkin.yml
 ```
 
-Nếu playbook cần sudo và user SSH yêu cầu mật khẩu sudo, thêm `--ask-become-pass`. EC2 Ubuntu thông thường cho user `ubuntu` sudo không cần mật khẩu.
-
-Kiểm tra dịch vụ sau khi playbook hoàn tất:
+Kiểm tra dịch vụ Jenkins:
 
 ```bash
 ansible jenkins -i inventory/hosts.ini -b -m command -a 'systemctl is-active jenkins'
 ```
+
+Kết quả mong đợi: `active`.
 
 ### Truy cập Jenkins
 
@@ -306,17 +194,6 @@ Dùng chuỗi mật khẩu ở kết quả lệnh để mở khóa, cài plugin 
 
 Chạy trên máy Linux điều khiển, cùng user sẽ chạy Ansible:
 
-```bash
-aws sts get-caller-identity
-aws eks update-kubeconfig --region "$AWS_DEFAULT_REGION" --name "$EKS_CLUSTER_NAME"
-kubectl config current-context
-kubectl get nodes -o wide
-```
-
-Nếu mở terminal mới, khai báo lại `AWS_DEFAULT_REGION`, `EKS_CLUSTER_NAME`, kích hoạt virtual environment và các biến Ansible ở mục 3.4. IAM principal cần được cấp quyền truy cập EKS; `update-kubeconfig` không tự cấp quyền. Máy điều khiển cũng phải có đường mạng tới API endpoint EKS.
-
-Kiểm tra region, tên cluster và biến monitoring trong `inventory/group_vars/monitoring.yml` trước khi chạy. Đảm bảo tên template được task tham chiếu khớp với `roles/prometheus/templates/monitoring.yml.j2`.
-
 ### 5.2. Chạy playbook
 
 ```bash
@@ -336,88 +213,63 @@ Pod cần ở trạng thái `Running`, cột `READY` đầy đủ. Các tên Ser
 
 ## 6. Truy cập Prometheus và Grafana qua AWS Load Balancer
 
-### 6.1. Chuyển Service sang LoadBalancer
+Đã cấu hình `service.type: LoadBalancer` cho Grafana và Prometheus trong template. Sau khi chạy playbook, kiểm tra địa chỉ:
 
 ```bash
-kubectl patch svc prometheus-grafana -n monitoring -p '{"spec":{"type":"LoadBalancer"}}'
-kubectl patch svc prometheus-kube-prometheus-prometheus -n monitoring -p '{"spec":{"type":"LoadBalancer"}}'
 kubectl get svc -n monitoring -w
 ```
 
-Đợi `EXTERNAL-IP` của hai Service chuyển từ `<pending>` thành hostname `...us-east-1.elb.amazonaws.com`, rồi nhấn **Ctrl+C**. Trên AWS, đây thường là hostname Load Balancer, không phải IP public EC2 Jenkins.
+Đợi `EXTERNAL-IP` của hai Service chuyển từ `<pending>` thành hostname AWS, rồi nhấn **Ctrl+C**.
 
-### 6.2. Lấy URL truy cập
+### 6.1. Lấy URL truy cập
 
 ```bash
 kubectl get svc prometheus-grafana -n monitoring -o jsonpath='http://{.status.loadBalancer.ingress[0].hostname}{"\n"}'
 kubectl get svc prometheus-kube-prometheus-prometheus -n monitoring -o jsonpath='http://{.status.loadBalancer.ingress[0].hostname}:9090{"\n"}'
 ```
 
+Mở URL tương ứng trên trình duyệt:
+
 | Dịch vụ | URL |
 |---|---|
 | Grafana | `http://HOSTNAME_LB_GRAFANA` |
 | Prometheus | `http://HOSTNAME_LB_PROMETHEUS:9090` |
 
-Nhấn **Ctrl+L** trong trình duyệt rồi dán đầy đủ URL. Dùng `http://`; cấu hình này chưa thiết lập HTTPS. Không dùng NodePort xuất hiện sau dấu `:` trong cột `PORT(S)` để truy cập hostname LB.
+Dùng `http://`, không dùng `https://` vì chưa cấu hình TLS.
 
-### 6.3. Đăng nhập và kiểm tra Grafana
+### 6.2. Đăng nhập Grafana
 
-Lấy user và mật khẩu:
+Đăng nhập Grafana với tên tài khoản **admin** và mật khẩu khi nhập ở bước chạy playbook, vào **Dashboards**, tìm `Kubernetes / Compute Resources / Cluster` để xem CPU/RAM. Chọn dashboard namespace hoặc pod để xem chi tiết.
 
-```bash
-kubectl get secret prometheus-grafana -n monitoring -o jsonpath='{.data.admin-user}' | base64 --decode; echo
-kubectl get secret prometheus-grafana -n monitoring -o jsonpath='{.data.admin-password}' | base64 --decode; echo
-```
+### 6.3. Kiểm tra Prometheus
 
-Mở URL Grafana và đăng nhập bằng thông tin trên. Nếu dùng Secret tùy chỉnh hoặc đã đổi mật khẩu trong UI, dùng thông tin tương ứng.
+Mở URL Prometheus, vào **Status → Targets** để kiểm tra trạng thái các target.
 
-Trong **Dashboards**, tìm `Kubernetes / Compute Resources / Cluster` hoặc dashboard tương tự, chọn datasource Prometheus, khoảng thời gian `Last 15 minutes` để kiểm tra CPU/RAM. Có thể chọn dashboard namespace/pod để xem chi tiết.
-
-### 6.4. Kiểm tra Prometheus
-
-Mở URL Prometheus, vào **Status → Targets** để xem target đang `UP` hay `DOWN`. Chạy truy vấn:
+Chạy truy vấn:
 
 ```promql
 up
 ```
 
-Giá trị `1` nghĩa là lần scrape gần nhất thành công, `0` là thất bại. Muốn kiểm tra CPU worker (% trung bình trong 5 phút):
+Giá trị `1` là scrape thành công, `0` là thất bại.
+
+Xem CPU worker đang sử dụng (% trung bình trong 5 phút):
 
 ```promql
 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])))
 ```
 
-Prometheus mặc định chưa có đăng nhập trong cấu hình này. Load Balancer công khai có thể cho người ngoài truy cập metrics và phát sinh phí AWS; giới hạn nguồn truy cập theo nhu cầu sử dụng.
+### 6.4. Nếu không truy cập được
 
-### 6.5. Giữ cấu hình LoadBalancer khi chạy lại playbook
-
-Hai lệnh patch chỉ thay đổi Service đang chạy. Để Helm/Ansible tiếp tục quản lý cấu hình này, hợp nhất vào `roles/prometheus/templates/monitoring.yml.j2`:
-
-```yaml
-grafana:
-  service:
-    type: LoadBalancer
-
-prometheus:
-  service:
-    type: LoadBalancer
-```
-
-Nếu đã có các block `grafana:` hoặc `prometheus:`, thêm/sửa `service.type` bên trong; không tạo khóa YAML trùng và không ghi đè các thiết lập hiện có. Sau đó chạy lại:
+Chờ Load Balancer hoàn tất khởi tạo và health check, sau đó kiểm tra:
 
 ```bash
-ansible-playbook -i inventory/hosts.ini playbooks/install-prometheus.yml
-```
-
-Nếu có hostname nhưng chưa vào được, chờ LB hoàn tất health check rồi kiểm tra:
-
-```bash
+kubectl get pods -n monitoring
 kubectl describe svc prometheus-grafana -n monitoring
 kubectl describe svc prometheus-kube-prometheus-prometheus -n monitoring
-kubectl get endpointslices -n monitoring
 ```
 
-Kiểm tra thêm scheme internet-facing, listener, target health và security group của LB trong AWS. Không mở port Grafana/Prometheus trên EC2 Jenkins: hai dịch vụ này chạy trong EKS và được truy cập qua LB của chúng.
+Trong AWS, kiểm tra Load Balancer có scheme `internet-facing`, target healthy và security group cho phép truy cập đúng port.
 
 ## Tài liệu cài đặt chính thức
 
