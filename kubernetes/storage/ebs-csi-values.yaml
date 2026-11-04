@@ -1,0 +1,14 @@
+# AWS Academy lab only. LabRole has EC2 trust, no IRSA/Pod Identity trust.
+# Host networking reaches IMDSv2 with the existing node hop limit of 1.
+# No static AWS credentials are stored in Kubernetes.
+controller:
+  replicaCount: 1
+  env:
+    - name: AWS_REGION
+      value: us-east-1
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {memory: 256Mi}
+node:
+  enableWindows: false
+  hostNetwork: true
