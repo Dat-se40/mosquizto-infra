@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebs-csi-controller
+  namespace: kube-system
+spec:
+  template:
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: ebs-plugin
+          # The node plugin already occupies 9808 on both workers.
+          ports:
+            - $patch: replace
+            - name: healthz
+              containerPort: 9811
+              protocol: TCP
+        - name: liveness-probe
+          args:
+            - --csi-address=/csi/csi.sock
+            - --probe-timeout=60s
+            - --http-endpoint=:9811

@@ -1,0 +1,29 @@
+# Temporary acceptance resources. Run in a dedicated, disposable namespace.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: storage-check
+spec:
+  storageClassName: mosquizto-gp3
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 1Gi}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-check
+spec:
+  restartPolicy: Never
+  containers:
+    - name: check
+      image: busybox:1.37.0
+      command: [sh, -ec, 'if [ -f /data/marker ]; then cat /data/marker; else echo mosquizto-storage-ok > /data/marker; cat /data/marker; fi; sleep 3600']
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 32Mi}
+      volumeMounts:
+        - {name: data, mountPath: /data}
+  volumes:
+    - name: data
+      persistentVolumeClaim: {claimName: storage-check}
