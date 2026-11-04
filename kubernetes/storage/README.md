@@ -1,17 +1,10 @@
-# EBS storage for the Mosquizto EKS lab
+# Lưu trữ EBS cho Mosquizto trên EKS lab
 
-Coordinate this installation with the cluster/add-on owners. Do not install
-alongside another EBS CSI installation. `Install-Storage.ps1` rejects an existing
-managed EBS CSI add-on. It renders upstream Helm chart 2.67.1 (driver 1.67.1),
-applies the tracked network patch, validates on the server and installs with
-kubectl. It is not a Helm-managed release. Re-run the same script for updates.
+Phối hợp người quản lý cluster/add-on trước khi cài. Không cài chồng một bản EBS CSI khác. `Install-Storage.ps1` từ chối nếu cluster đã có EBS CSI managed add-on. Script render Helm chart chính thức phiên bản 2.67.1, driver 1.67.1; áp dụng bản vá network được lưu trong repo, kiểm tra phía server rồi cài bằng kubectl. Đây không phải bản cài do Helm quản lý. Dùng lại script để cập nhật cấu hình.
 
-This lab uses the existing worker `LabRole` through IMDSv2. Node metadata has hop
-limit 1, so the controller and CSI node Pods use host networking. No AWS static
-keys or ECR tokens are stored in Kubernetes. If the Lab denies EBS operations,
-stop and request the required permissions from the Lab administrator; attaching
-an IAM policy cannot override an SCP. A dedicated workload identity is the
-production replacement for this lab configuration.
+Lab dùng `LabRole` sẵn có của worker qua IMDSv2. Metadata của node có hop limit bằng 1, nên controller và CSI node Pod dùng host network. Controller dùng cổng health 9811 để tránh trùng cổng 9808 của node plugin. Không lưu AWS access key hoặc ECR token tĩnh trong Kubernetes. Nếu Lab từ chối thao tác EBS, cần quản trị Lab cấp quyền phù hợp; thêm IAM policy không vượt được SCP. Khi triển khai production, thay cách dùng chung role node bằng danh tính IAM riêng cho workload.
+
+Chạy các lệnh sau từ thư mục gốc `mosquizto-infra`, sau khi cấu hình AWS credentials và kubeconfig:
 
 ```powershell
 ./kubernetes/storage/Install-Storage.ps1 -Context mosquizto-eks -Helm helm
@@ -25,12 +18,6 @@ kubectl --context=mosquizto-eks -n mosquizto-storage-check wait pod/storage-chec
 kubectl --context=mosquizto-eks -n mosquizto-storage-check logs storage-check
 ```
 
-The second Pod must read `mosquizto-storage-ok` from the same Bound claim.
-Before removing the test namespace, record the test PV and its EBS volume ID.
-Retain intentionally leaves the EBS volume after PVC deletion. Clean up only
-the recorded disposable test volume/PV after the test, never application data.
+Pod thứ hai phải đọc được `mosquizto-storage-ok` từ cùng PVC đã Bound. Trước khi xóa namespace kiểm thử, ghi lại tên PV và ID EBS volume của bài test. Chính sách `Retain` giữ lại volume sau khi PVC bị xóa. Sau kiểm thử, chỉ dọn PV/volume tạm có ID đã đối chiếu, giữ nguyên dữ liệu ứng dụng.
 
-`mosquizto-gp3` explicitly selects encrypted gp3, ext4, WaitForFirstConsumer,
-expansion and Retain. It is not the cluster's default StorageClass. Application
-PVCs select it explicitly. This test and the application create billable EBS
-volumes; they are part of the approved lab deployment, not a backup service.
+StorageClass `mosquizto-gp3` chọn rõ gp3 được mã hóa, ext4, `WaitForFirstConsumer`, cho mở rộng dung lượng và `Retain`. Class này không được đặt làm mặc định của cluster; các PVC ứng dụng tham chiếu trực tiếp bằng tên. Bài kiểm thử và ứng dụng tạo EBS volume có tính phí trong phạm vi lab đã được duyệt; chúng chưa cung cấp chức năng backup.
