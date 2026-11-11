@@ -35,6 +35,10 @@ resource "aws_instance" "jenkins_ec2" {
     delete_on_termination = true
   }
 
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
   tags = {
     Name = var.jenkins-ec2-name
   }

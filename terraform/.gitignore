@@ -22,3 +22,8 @@ tfplan
 *token*
 *.credentials
 inventory.ini
+
+# Database Local Backups
+backups/
+*.dump
+*.sql.gz

@@ -1,0 +1,14 @@
+# Local Database Backups
+backups/
+*.dump
+*.sql.gz
+
+# AWS Credentials & Local Secrets
+.aws/
+*.key
+*.pem
+credentials
+
+
+# Binaries
+bin/*.exe
